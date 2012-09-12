@@ -12,12 +12,16 @@ use Text::MicroTemplate qw/render_mt/;
 use Log::Minimal;
 use Text::Diff::FormattedHTML;
 use HTTP::Date;
+use Getopt::Long;
 
 my $ua = LWP::UserAgent->new(timeout => 15);
 $ua->ssl_opts(verify_hostname => 0);
 $Web::Query::UserAgent = $ua;
 
-my $MAX_ENTRIES = 1;
+my $MAX_ENTRIES = 30;
+GetOptions(
+    'n=i' => \$MAX_ENTRIES,
+);
 
 my $ofname = shift || 'npmrss.rss';
 
