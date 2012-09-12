@@ -91,7 +91,7 @@ sub extract_entries {
 <div class="description"><?= $latest->{description} ?></div>
 ? }
 ? for my $maintainer (@{$n->{maintainers} || []}) {
-<img src="<?= eval { gravatar_url(email => $maintainer->{email}) } || '' ?>"> <?= $maintainer->{name} ?><br />
+<img src="<?= eval { gravatar_url(email => $maintainer->{email}, size => 40) } || '' ?>"> <?= $maintainer->{name} ?><br />
 ? }
 ? if ($diff) {
     <pre><?= $diff ?></pre>
