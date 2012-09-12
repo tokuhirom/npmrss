@@ -8,7 +8,7 @@ use Web::Query;
 use LWP::UserAgent;
 use XML::Feed;
 use JSON::XS;
-use Text::MicroTemplate qw/render_mt/;
+use Text::MicroTemplate qw/render_mt encoded_string/;
 use Log::Minimal;
 use Text::Diff::FormattedHTML;
 use HTTP::Date;
@@ -76,7 +76,7 @@ sub extract_entries {
             my $rd0 = $data->{versions}->{$versions[0]}->{readme};
             my $rd1 = $data->{versions}->{$versions[1]}->{readme};
             if ($rd0 && $rd1) {
-                $diff = diff_strings($rd0, $rd1);
+                $diff = encoded_string diff_strings($rd0, $rd1);
             }
         }
         my $latest = $data->{versions}->{$data->{'dist-tags'}->{'latest'}};
@@ -96,12 +96,15 @@ sub extract_entries {
     <pre><?= $diff ?></pre>
 ? }
 <table>
-<tr>
 ? if ($latest->{dependencies}) {
+<tr>
 <th>Dependencies</th><td><?= ddf $latest->{dependencies} ?></td>
+</tr>
 ? }
 ? if ($latest->{keywords}) {
+<tr>
 <th>Keywords</th><td><?= ddf($latest->{keywords}) || '' ?></td>
+</tr>
 ? }
 </tr>
 </table>
@@ -120,11 +123,11 @@ sub output_rss {
     my $feed = XML::Feed->new('RSS', version => '2.0');
     $feed->title('NPM Recent Feed');
     $feed->link('http://64p.org/npmrss.rss');
-    $feed->author('npm');
     $feed->description('rich recent packages feed');
     for my $entry (@$entries) {
         my $e = XML::Feed::Entry->new();
         $e->title($entry->{title});
+        $e->description($entry->{title});
         $e->link($entry->{link});
         $e->content(
             XML::Feed::Content->new({
