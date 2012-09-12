@@ -13,6 +13,7 @@ use Log::Minimal;
 use Text::Diff::FormattedHTML;
 use HTTP::Date;
 use Getopt::Long;
+use XMLRPC::Lite;
 
 my $ua = LWP::UserAgent->new(timeout => 15);
 $ua->ssl_opts(verify_hostname => 0);
@@ -37,6 +38,9 @@ sub main {
 
     infof("Output rss");
     output_rss($ofname, \@entries);
+
+    infof("Sending pings");
+    send_pings();
 }
 
 sub get_project_list {
@@ -133,4 +137,21 @@ sub output_rss {
     open my $ofh, '>:utf8', $ofname;
     print $ofh $feed->as_xml;
     close $ofh;
+}
+
+sub send_pings {
+    send_ping($_) for qw(
+        http://rpc.reader.livedoor.com/ping
+        http://www.google.com/blogsearch
+    );
+}
+sub send_ping {
+    my $ping_url = shift;
+    my $result=XMLRPC::Lite
+        ->proxy($ping_url)
+        ->call('weblogUpdates.ping',
+           "NPM RSS",
+           "http://64p.org/npmrss.rss")
+        ->result;
+    infof("%s: %s", $ping_url, eval { $result->{'message'} });
 }
