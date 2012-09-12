@@ -10,10 +10,10 @@ use XML::Feed;
 use JSON::XS;
 use Text::MicroTemplate qw/render_mt encoded_string/;
 use Log::Minimal;
-use Text::Diff::FormattedHTML;
 use HTTP::Date;
 use Getopt::Long;
 use XMLRPC::Lite;
+use Algorithm::Diff qw/diff/;
 
 my $ua = LWP::UserAgent->new(timeout => 15);
 $ua->ssl_opts(verify_hostname => 0);
@@ -76,7 +76,8 @@ sub extract_entries {
             my $rd0 = $data->{versions}->{$versions[0]}->{readme};
             my $rd1 = $data->{versions}->{$versions[1]}->{readme};
             if ($rd0 && $rd1) {
-                $diff = encoded_string diff_strings($rd0, $rd1);
+                my $dsrc = diff [split /\n/, $rd1], [split /\n/, $rd0];
+                $diff = join("\n", map { $_->[2] } grep { $_->[0] eq '+' } @{$dsrc->[0]});
             }
         }
         my $latest = $data->{versions}->{$data->{'dist-tags'}->{'latest'}};
@@ -127,7 +128,6 @@ sub output_rss {
     for my $entry (@$entries) {
         my $e = XML::Feed::Entry->new();
         $e->title($entry->{title});
-        $e->description($entry->{title});
         $e->link($entry->{link});
         $e->content(
             XML::Feed::Content->new({
