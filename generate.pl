@@ -14,6 +14,14 @@ use HTTP::Date;
 use Getopt::Long;
 use XMLRPC::Lite;
 use Algorithm::Diff qw/diff/;
+use Cache::FileCache;
+use Data::Dumper; sub p { warn Dumper(@_) }
+
+# caching for easy development.
+my $cache = Cache::FileCache->new({
+    default_expires_in => $ENV{DEBUG} ? 60*60 : 60,
+    namespace => $ENV{DEBUG} ? 'npmrss-debug' : 'npmrss',
+});
 
 my $ua = LWP::UserAgent->new(timeout => 15);
 $ua->ssl_opts(verify_hostname => 0);
@@ -28,9 +36,25 @@ my $ofname = shift || 'npmrss.rss';
 
 &main;exit;
 
+sub Cache::FileCache::get_or_set {
+    my ($self, $key, $code, $expires) = @_;
+    my $val = $self->get($key);
+    if (!defined $val) {
+        infof("Cache missed: $key");
+        $val = $code->();
+        $self->set($key, $val, $expires);
+    } else {
+        infof("Cache hit: $key");
+    }
+    return $val;
+}
+
 sub main {
     infof("Get project links");
-    my @projects = get_project_list();
+    my @projects = @{$cache->get_or_set(
+        "project_list",
+        sub { [get_project_list()] },
+    )};
        @projects = @projects[0..$MAX_ENTRIES-1] if @projects > $MAX_ENTRIES;
 
     infof("Extract entries");
@@ -57,7 +81,10 @@ sub extract_entries {
     my $i = 0;
     for my $project (@projects) {
         infof("  Extracting $project(%d/%d)", $i++, 0+@projects);
-        my $res = $ua->get("https://registry.npmjs.org/$project");
+        my $res = $cache->get_or_set(
+            $project,
+            sub { $ua->get("https://registry.npmjs.org/$project") },
+        );
         unless ($res->is_success) {
             warnf("Cannot get a information for $project: %s", $res->status_line);
             next;
@@ -81,6 +108,24 @@ sub extract_entries {
             }
         }
         my $latest = $data->{versions}->{$data->{'dist-tags'}->{'latest'}};
+        if ($latest->{description}) {
+            $latest->{description} =~ s/\n=+$//;
+        }
+        eval {
+            if ($data->{repository} && $data->{repository}->{url} =~ m{^git://github\.com/(.+)\.git$}) {
+                $data->{github} = $1;
+                my $ghdata = $cache->get_or_set(
+                    "github:" . $data->{github},
+                    sub {
+                        my $res = $ua->get("https://api.github.com/repos/$data->{github}");
+                        $res->is_success or die "Cannot get a repository information: " . $res->status_line;
+                        decode_json($res->content);
+                    }, 24*60*60
+                );
+                $data->{github_watchers} = $ghdata->{watchers};
+            }
+        };
+        warnf("%s", $@);
         my $title = sprintf '%s-%s', $latest->{name}, $latest->{version};
         my $html = render_mt(<<'...', $data, $latest, $diff);
 ? my $n = $_[0];
@@ -108,6 +153,15 @@ sub extract_entries {
 ? if (ref $latest->{keywords} eq 'ARRAY') {
 <tr>
 <th>Keywords</th><td><?= join(', ', @{$latest->{keywords}}) ?></td>
+</tr>
+? }
+? if ($n->{github}) {
+<tr>
+<th>Github</th><td><a href="https://github.com/<?= $n->{github} ?>/"><?= $n->{github} ?></a>
+    <? if (defined $n->{github_watchers}) { ?>
+        (<?= $n->{github_watchers} ?> watchers)
+    <? } ?>
+</td>
 </tr>
 ? }
 </tr>
@@ -146,6 +200,8 @@ sub output_rss {
 }
 
 sub send_pings {
+    return if $ENV{DISABLE_PING};
+
     send_ping($_) for qw(
         http://rpc.reader.livedoor.com/ping
         http://blogsearch.google.com/ping/RPC2
