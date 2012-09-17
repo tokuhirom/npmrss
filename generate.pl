@@ -113,7 +113,7 @@ sub extract_entries {
             $latest->{description} =~ s/\n=+$//;
         }
         eval {
-            if ($data->{repository} && $data->{repository}->{url} =~ m{^git://github\.com/(.+)\.git$}) {
+            if ($data->{repository} && $data->{repository}->{url} =~ m{^(?:git|https?)://github\.com/(.+)\.git$}) {
                 $data->{github} = $1;
                 my $ghdata = $cache->get_or_set(
                     "github:" . $data->{github},
@@ -143,6 +143,7 @@ sub extract_entries {
 ? if ($diff) {
     <pre><?= $diff ?></pre>
 ? }
+<hr />
 <table>
 ? if (ref $latest->{dependencies} eq 'HASH' && %{$latest->{dependencies}}) {
 <tr>
