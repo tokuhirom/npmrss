@@ -88,7 +88,8 @@ sub extract_entries {
 ? my $diff = $_[2];
 ? use Gravatar::URL;
 ? if ($latest->{description}) {
-<div class="description"><?= $latest->{description} ?></div>
+<div class="description" style="margin-bottom: 8px; font-size: 120%;"><?= $latest->{description} ?></div>
+<br />
 ? }
 ? for my $maintainer (@{$n->{maintainers} || []}) {
 <img src="<?= eval { gravatar_url(email => $maintainer->{email}, size => 40) } || '' ?>"> <?= $maintainer->{name} ?><br />
@@ -97,14 +98,16 @@ sub extract_entries {
     <pre><?= $diff ?></pre>
 ? }
 <table>
-? if ($latest->{dependencies}) {
+? if (ref $latest->{dependencies} eq 'HASH' && %{$latest->{dependencies}}) {
 <tr>
-<th>Dependencies</th><td><?= ddf $latest->{dependencies} ?></td>
+<td>Dependencies</td><td>
+    <?= join(', ', keys %{$latest->{Dependencies}}) ?>
+</td>
 </tr>
 ? }
-? if ($latest->{keywords}) {
+? if (ref $latest->{keywords} eq 'ARRAY') {
 <tr>
-<th>Keywords</th><td><?= ddf($latest->{keywords}) || '' ?></td>
+<th>Keywords</th><td><?= join(', ', @{$latest->{keywords}}) ?></td>
 </tr>
 ? }
 </tr>
@@ -145,7 +148,7 @@ sub output_rss {
 sub send_pings {
     send_ping($_) for qw(
         http://rpc.reader.livedoor.com/ping
-        http://www.google.com/blogsearch
+        http://blogsearch.google.com/ping/RPC2
     );
 }
 sub send_ping {
