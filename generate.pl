@@ -114,6 +114,15 @@ sub extract_entries {
         eval {
             if ($data->{repository} && $data->{repository}->{url} =~ m{^git://github\.com/(.+)\.git$}) {
                 $data->{github} = $1;
+                my $ghdata = $cache->get_or_set(
+                    "github:" . $data->{github},
+                    sub {
+                        my $res = $ua->get("https://api.github.com/repos/$data->{github}");
+                        $res->is_success or die "Cannot get a repository information: " . $res->status_line;
+                        decode_json($res->content);
+                    }, 24*60*60
+                );
+                $data->{github_watchers} = $ghdata->{watchers};
             }
         };
         warnf("%s", $@);
@@ -145,7 +154,11 @@ sub extract_entries {
 ? }
 ? if ($n->{github}) {
 <tr>
-<th>Github</th><td><a href="https://github.com/<?= $n->{github} ?>/"><?= $n->{github} ?></a></td>
+<th>Github</th><td><a href="https://github.com/<?= $n->{github} ?>/"><?= $n->{github} ?></a>
+    <? if (defined $n->{github_watchers}) { ?>
+        (<?= $n->{github_watchers} ?> watchers)
+    <? } ?>
+</td>
 </tr>
 ? }
 </tr>
