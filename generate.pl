@@ -52,8 +52,9 @@ sub Cache::FileCache::get_or_set {
 sub main {
     infof("Get project links");
     my @projects = @{$cache->get_or_set(
-        "project_list",
+        "project_list2",
         sub { [get_project_list()] },
+        60
     )};
        @projects = @projects[0..$MAX_ENTRIES-1] if @projects > $MAX_ENTRIES;
 
@@ -125,7 +126,7 @@ sub extract_entries {
                 $data->{github_watchers} = $ghdata->{watchers};
             }
         };
-        warnf("%s", $@);
+        warnf("%s", $@) if $@;
         my $title = sprintf '%s-%s', $latest->{name}, $latest->{version};
         my $html = render_mt(<<'...', $data, $latest, $diff);
 ? my $n = $_[0];
@@ -146,7 +147,7 @@ sub extract_entries {
 ? if (ref $latest->{dependencies} eq 'HASH' && %{$latest->{dependencies}}) {
 <tr>
 <td>Dependencies</td><td>
-    <?= join(', ', keys %{$latest->{Dependencies}}) ?>
+    <?= join(', ', keys %{$latest->{dependencies}}) ?>
 </td>
 </tr>
 ? }
