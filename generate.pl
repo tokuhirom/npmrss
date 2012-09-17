@@ -152,12 +152,12 @@ sub extract_entries {
 ? }
 ? if (ref $latest->{keywords} eq 'ARRAY') {
 <tr>
-<th>Keywords</th><td><?= join(', ', @{$latest->{keywords}}) ?></td>
+<td>Keywords</td><td><?= join(', ', @{$latest->{keywords}}) ?></td>
 </tr>
 ? }
 ? if ($n->{github}) {
 <tr>
-<th>Github</th><td><a href="https://github.com/<?= $n->{github} ?>/"><?= $n->{github} ?></a>
+<td>Github</td><td><a href="https://github.com/<?= $n->{github} ?>/"><?= $n->{github} ?></a>
     <? if (defined $n->{github_watchers}) { ?>
         (<?= $n->{github_watchers} ?> watchers)
     <? } ?>
