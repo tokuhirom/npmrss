@@ -144,7 +144,7 @@ sub extract_entries {
     <pre><?= $diff ?></pre>
 ? }
 <hr />
-<table>
+<table border="1">
 ? if (ref $latest->{dependencies} eq 'HASH' && %{$latest->{dependencies}}) {
 <tr>
 <td>Dependencies</td><td>
