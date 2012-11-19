@@ -90,7 +90,13 @@ sub extract_entries {
             warnf("Cannot get a information for $project: %s", $res->status_line);
             next;
         }
-        my $data = decode_json($res->content);
+        my $data = eval {
+            decode_json($res->content);
+        };
+        if ($@) {
+            warnf("Cannot parse json for $project: %s", $@);
+            next;
+        }
         my %time = %{$data->{time}};
         my @versions = (
             map { $_->[0] }
