@@ -12,3 +12,4 @@ requires 'Web::Query';
 requires 'XML::Feed';
 requires 'XMLRPC::Lite';
 requires 'autodie';
+requires 'Gravatar::URL';
